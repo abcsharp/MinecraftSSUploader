@@ -45,8 +45,8 @@ namespace MinecraftSSUploader
 			fileSystemWatcher1.Path=ScreenShotDirectory.FullName;
 			string LauncherPath=Environment.CurrentDirectory+"\\Minecraft.exe";
 			if(checkBox1.Checked&&File.Exists(LauncherPath)){
-				var WindowHandle=Interop.FindWindow(null,"Minecraft Launcher");
-				if(WindowHandle==IntPtr.Zero) Process.Start(LauncherPath);
+				var LauncherStarted=Interop.FindWindow(null,"Minecraft Launcher")!=IntPtr.Zero||Interop.FindWindow(null,"Minecraft")!=IntPtr.Zero;
+				if(!LauncherStarted) Process.Start(LauncherPath);
 			}
 			UpdateListItems();
 			return;
@@ -108,7 +108,7 @@ namespace MinecraftSSUploader
 		{
 			listBox1.BeginUpdate();
 			var Files=ScreenShotDirectory.GetFiles("*.png",SearchOption.TopDirectoryOnly).ToList();
-			Files.Sort((a,b)=>a.CreationTime.Ticks.CompareTo(b.CreationTime.Ticks));
+			Files.Sort((a,b)=>a.LastWriteTime.Ticks.CompareTo(b.LastWriteTime.Ticks));
 			var Items=from Item in Files select new FileItem(Item.Name,Item.FullName);
 			listBox1.DataSource=Items.ToList();
 			listBox1.DisplayMember="ShortName";
