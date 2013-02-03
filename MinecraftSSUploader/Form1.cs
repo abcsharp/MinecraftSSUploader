@@ -31,6 +31,13 @@ namespace MinecraftSSUploader
 		{
 			CurrentSetting=File.Exists(SettingFileName)?new Setting(SettingFileName):new Setting();
 			ScreenShotDirectory=new DirectoryInfo(Environment.ExpandEnvironmentVariables("%APPDATA%\\.minecraft\\screenshots"));
+			if(!ScreenShotDirectory.Exists){
+				MessageBox.Show("screenshotsディレクトリが存在しません。",
+					"Minecraft Screen Shot Uploader",
+					MessageBoxButtons.OK,
+					MessageBoxIcon.Error);
+				Application.Exit();
+			}
 			InitializeComponent();
 			return;
 		}
