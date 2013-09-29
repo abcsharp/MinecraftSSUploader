@@ -39,6 +39,8 @@ namespace MinecraftSSUploader
 				Application.Exit();
 			}
 			InitializeComponent();
+			fileSystemWatcher1.Path=ScreenShotDirectory.FullName;
+			fileSystemWatcher1.InternalBufferSize=32768;
 			return;
 		}
 
@@ -87,18 +89,41 @@ namespace MinecraftSSUploader
 
 		private void fileSystemWatcher1_Created(object sender,FileSystemEventArgs e)
 		{
-			UpdateListItems();
+			var fileInfo=new FileInfo(e.FullPath);
+			if(fileInfo.Extension.ToLower()==".png"){
+				var item=new FileItem(fileInfo.Name,fileInfo.FullName);
+				bindingSource1.Add(item);
+				bindingSource1.Position=bindingSource1.Count-1;
+			}
 			return;
 		}
 
 		private void fileSystemWatcher1_Renamed(object sender,RenamedEventArgs e)
 		{
-			UpdateListItems();
+			var fileInfo=new FileInfo(e.FullPath);
+			if(fileInfo.Extension.ToLower()==".png"){
+				var item=bindingSource1.List.Cast<FileItem>().FirstOrDefault(i=>i.FullName.Equals(e.OldFullPath,StringComparison.OrdinalIgnoreCase));
+				if(item!=null){
+					item.FullName=fileInfo.FullName;
+					item.ShortName=fileInfo.Name;
+					bindingSource1.ResetItem(bindingSource1.List.IndexOf(item));
+				}
+			}
 			return;
+		}
+
+		private void fileSystemWatcher1_Deleted(object sender,FileSystemEventArgs e)
+		{
+			var fileInfo=new FileInfo(e.FullPath);
+			if(fileInfo.Extension.ToLower()==".png"){
+				var item=bindingSource1.List.Cast<FileItem>().FirstOrDefault(i=>i.FullName.Equals(fileInfo.FullName,StringComparison.OrdinalIgnoreCase));
+				if(item!=null) bindingSource1.Remove(item);
+			}
 		}
 
 		private void listBox1_SelectedIndexChanged(object sender,EventArgs e)
 		{
+			timer1.Enabled=false;
 			timer1.Enabled=true;
 			return;
 		}
@@ -109,11 +134,9 @@ namespace MinecraftSSUploader
 			var Files=ScreenShotDirectory.GetFiles("*.png",SearchOption.TopDirectoryOnly).ToList();
 			Files.Sort((a,b)=>a.LastWriteTime.Ticks.CompareTo(b.LastWriteTime.Ticks));
 			var Items=from Item in Files select new FileItem(Item.Name,Item.FullName);
-			listBox1.DataSource=Items.ToList();
-			listBox1.DisplayMember="ShortName";
-			listBox1.ValueMember="FullName";
+			bindingSource1.DataSource=Items.ToList();
+			bindingSource1.Position=bindingSource1.Count-1;
 			listBox1.EndUpdate();
-			listBox1.SelectedIndex=listBox1.Items.Count-1;
 			return;
 		}
 
@@ -145,11 +168,32 @@ namespace MinecraftSSUploader
 
 		private void button3_Click(object sender,EventArgs e)
 		{
-			foreach(FileInfo File in ScreenShotDirectory.GetFiles()) File.Delete();
-			UpdateListItems();
-			pictureBox1.Image=null;
+			var result=MessageBox.Show("画像をすべて削除します。よろしいですか?",
+				"Minecraft Screen Shot Uploader",
+				MessageBoxButtons.YesNo,
+				MessageBoxIcon.Warning);
+			if(result==DialogResult.Yes){
+				bindingSource1.Clear();
+				foreach(FileInfo File in ScreenShotDirectory.GetFiles()) File.Delete();
+				pictureBox1.Image=null;
+			}
 		}
 
+		private void button4_Click(object sender,EventArgs e)
+		{
+			if(listBox1.SelectedItem!=null){
+				var result=MessageBox.Show("この画像を削除します。よろしいですか?",
+					"Minecraft Screen Shot Uploader",
+					MessageBoxButtons.YesNo,
+					MessageBoxIcon.Warning);
+				if(result==DialogResult.Yes){
+					var item=(FileItem)listBox1.SelectedItem;
+					bindingSource1.Remove(item);
+					File.Delete(item.FullName);
+					timer1.Enabled=true;
+				}
+			}
+		}
 	}
 
 	public class Setting
@@ -192,12 +236,6 @@ namespace MinecraftSSUploader
 		public Size WindowSize{get;set;}
 		public bool IsMaximized{get;set;}
 		public string UploaderPath{get;set;}
-	}
-
-	public class Interop
-	{
-		[DllImport("user32.dll",CharSet=CharSet.Unicode,EntryPoint="FindWindowW")]
-		public static extern IntPtr FindWindow(string ClassName,string WindowCaption);
 	}
 
 	public class FileItem
