@@ -12,12 +12,12 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Json;
+using MinecraftSSUploader.Properties;
 
 namespace MinecraftSSUploader
 {
 	public partial class Form1 : Form
 	{
-		Setting CurrentSetting;
 		DirectoryInfo ScreenShotDirectory;
 		string SettingFileName
 		{
@@ -29,7 +29,6 @@ namespace MinecraftSSUploader
 
 		public Form1()
 		{
-			CurrentSetting=File.Exists(SettingFileName)?new Setting(SettingFileName):new Setting();
 			ScreenShotDirectory=new DirectoryInfo(Environment.ExpandEnvironmentVariables("%APPDATA%\\.minecraft\\screenshots"));
 			if(!ScreenShotDirectory.Exists){
 				MessageBox.Show("screenshotsディレクトリが存在しません。",
@@ -46,10 +45,9 @@ namespace MinecraftSSUploader
 
 		private void Form1_Load(object sender,EventArgs e)
 		{
-			Location=CurrentSetting.WindowPosition;
-			Size=CurrentSetting.WindowSize;
-			WindowState=CurrentSetting.IsMaximized?FormWindowState.Maximized:FormWindowState.Normal;
-			textBox1.Text=CurrentSetting.UploaderPath;
+			Size=Settings.Default.WindowSize;
+			WindowState=Settings.Default.IsMaximized?FormWindowState.Maximized:FormWindowState.Normal;
+			textBox1.Text=Settings.Default.UploaderPath;
 			UpdateListItems();
 			return;
 		}
@@ -77,13 +75,10 @@ namespace MinecraftSSUploader
 
 		private void Form1_FormClosing(object sender,FormClosingEventArgs e)
 		{
-			CurrentSetting.IsMaximized=WindowState==FormWindowState.Maximized;
-			if(!CurrentSetting.IsMaximized){
-				CurrentSetting.WindowSize=Size;
-				CurrentSetting.WindowPosition=Location;
-			}
-			CurrentSetting.UploaderPath=textBox1.Text;
-			CurrentSetting.Save(SettingFileName);
+			Settings.Default.IsMaximized=WindowState==FormWindowState.Maximized;
+			if(!Settings.Default.IsMaximized) Settings.Default.WindowSize=Size;
+			Settings.Default.UploaderPath=textBox1.Text;
+			Settings.Default.Save();
 			return;
 		}
 
@@ -194,48 +189,6 @@ namespace MinecraftSSUploader
 				}
 			}
 		}
-	}
-
-	public class Setting
-	{
-		public Setting()
-		{
-			WindowPosition=new Point(100,100);
-			WindowSize=new Size(750,370);
-			IsMaximized=false;
-			UploaderPath="";
-			return;
-		}
-
-		public Setting(string FileName)
-		{
-			var Parser=new JsonParser();
-			var Result=(Dictionary<string,object>)Parser.Parse(File.ReadAllText(FileName,Encoding.UTF8));
-			WindowPosition=new Point((int)(long)Result["WindowPositionX"],(int)(long)Result["WindowPositionY"]);
-			WindowSize=new Size((int)(long)Result["WindowWidth"],(int)(long)Result["WindowHeight"]);
-			IsMaximized=(bool)Result["IsMaximized"];
-			UploaderPath=(string)Result["UploaderPath"];
-			return;
-		}
-
-		public void Save(string FileName)
-		{
-			var Creator=new JsonCreator();
-			var Dict=new Dictionary<string,object>();
-			Dict.Add("WindowPositionX",WindowPosition.X);
-			Dict.Add("WindowPositionY",WindowPosition.Y);
-			Dict.Add("WindowWidth",WindowSize.Width);
-			Dict.Add("WindowHeight",WindowSize.Height);
-			Dict.Add("IsMaximized",IsMaximized);
-			Dict.Add("UploaderPath",UploaderPath);
-			File.WriteAllText(FileName,Creator.Create(Dict),Encoding.UTF8);
-			return;
-		}
-
-		public Point WindowPosition{get;set;}
-		public Size WindowSize{get;set;}
-		public bool IsMaximized{get;set;}
-		public string UploaderPath{get;set;}
 	}
 
 	public class FileItem
