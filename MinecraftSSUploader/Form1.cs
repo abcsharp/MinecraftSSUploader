@@ -48,13 +48,6 @@ namespace MinecraftSSUploader
 			Size=CurrentSetting.WindowSize;
 			WindowState=CurrentSetting.IsMaximized?FormWindowState.Maximized:FormWindowState.Normal;
 			textBox1.Text=CurrentSetting.UploaderPath;
-			checkBox1.Checked=CurrentSetting.BootLauncher;
-			fileSystemWatcher1.Path=ScreenShotDirectory.FullName;
-			string LauncherPath=Environment.CurrentDirectory+"\\Minecraft.exe";
-			if(checkBox1.Checked&&File.Exists(LauncherPath)){
-				var LauncherStarted=Interop.FindWindow(null,"Minecraft Launcher")!=IntPtr.Zero||Interop.FindWindow(null,"Minecraft")!=IntPtr.Zero;
-				if(!LauncherStarted) Process.Start(LauncherPath);
-			}
 			UpdateListItems();
 			return;
 		}
@@ -88,7 +81,6 @@ namespace MinecraftSSUploader
 				CurrentSetting.WindowPosition=Location;
 			}
 			CurrentSetting.UploaderPath=textBox1.Text;
-			CurrentSetting.BootLauncher=checkBox1.Checked;
 			CurrentSetting.Save(SettingFileName);
 			return;
 		}
@@ -164,8 +156,10 @@ namespace MinecraftSSUploader
 	{
 		public Setting()
 		{
-			Init1();
-			Init2();
+			WindowPosition=new Point(100,100);
+			WindowSize=new Size(750,370);
+			IsMaximized=false;
+			UploaderPath="";
 			return;
 		}
 
@@ -177,23 +171,6 @@ namespace MinecraftSSUploader
 			WindowSize=new Size((int)(long)Result["WindowWidth"],(int)(long)Result["WindowHeight"]);
 			IsMaximized=(bool)Result["IsMaximized"];
 			UploaderPath=(string)Result["UploaderPath"];
-			if(!Result.ContainsKey("BootLauncher")) Init2();
-			else BootLauncher=(bool)Result["BootLauncher"];
-			return;
-		}
-
-		private void Init1()
-		{
-			WindowPosition=new Point(100,100);
-			WindowSize=new Size(750,370);
-			IsMaximized=false;
-			UploaderPath="";
-			return;
-		}
-
-		private void Init2()
-		{
-			BootLauncher=false;
 			return;
 		}
 
@@ -207,7 +184,6 @@ namespace MinecraftSSUploader
 			Dict.Add("WindowHeight",WindowSize.Height);
 			Dict.Add("IsMaximized",IsMaximized);
 			Dict.Add("UploaderPath",UploaderPath);
-			Dict.Add("BootLauncher",BootLauncher);
 			File.WriteAllText(FileName,Creator.Create(Dict),Encoding.UTF8);
 			return;
 		}
@@ -216,7 +192,6 @@ namespace MinecraftSSUploader
 		public Size WindowSize{get;set;}
 		public bool IsMaximized{get;set;}
 		public string UploaderPath{get;set;}
-		public bool BootLauncher{get;set;}
 	}
 
 	public class Interop
